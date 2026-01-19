@@ -11,7 +11,7 @@ const summarizeNews = async (data: {
   url: string;
   language: string;
 }) => {
-  const res = await fetch("http://192.168.1.65:5000/summarize", {
+  const res = await fetch("http://192.168.1.65:5000/summarizer", {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
