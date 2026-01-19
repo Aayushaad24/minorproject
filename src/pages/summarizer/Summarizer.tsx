@@ -11,7 +11,7 @@ const summarizeNews = async (data: {
   url: string;
   language: string;
 }) => {
-  const res = await fetch("http://192.168.1.65:5000/summarizer", {
+  const res = await fetch("https://my-summarizer-api.vercel.app/summarizer", {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
