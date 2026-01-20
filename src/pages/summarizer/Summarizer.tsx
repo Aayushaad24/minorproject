@@ -1,26 +1,29 @@
 import React, { useState } from "react";
 import Input from "../../components/ui/Input";
 import Button from "../../components/ui/Button";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 
-type Summary = {
-  text: string;
-};
-
-const summarizeNews = async (data: {
+type SummarizePayload = {
   url: string;
   language: string;
-}) => {
-  const res = await fetch("https://my-summarizer-api.vercel.app/summarizer", {
+  num_sentences?: number;
+};
+
+type SummarizeResult = {
+  language: string;
+  num_sentences_used: Number;
+  success: Boolean;
+  summary: string;
+  url: string;
+};
+
+const summarizeNews = async (data: SummarizePayload) => {
+  const res = await fetch("http://localhost:5001/summarizer", {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
     },
-    body: JSON.stringify({
-      url: data.url,
-      language: data.language, // english | nepali | hindi
-      num_sentences: 5,
-    }),
+    body: JSON.stringify(data),
   });
 
   if (!res.ok) {
@@ -32,37 +35,42 @@ const summarizeNews = async (data: {
 
 const Summarizer = () => {
   const [newsLink, setNewsLink] = useState("");
-  const [summary, setSummary] = useState<Summary | null>(null);
-  const [language, setLanguage] = useState("english");
+  const [summary, setSummary] = useState<SummarizeResult | null>(null);
+
+  const [language, setLanguage] = useState("en");
 
   const mutation = useMutation({
     mutationFn: summarizeNews,
     onSuccess: (data) => {
-      if (data.success) {
-        setSummary({ text: data.summary });
-      }
+      setSummary(data);
     },
     onError: (error) => {
-      console.error("Summarization failed:", error);
+      console.error("Mutation failed:", error);
     },
   });
 
+  const mapLanguage = (lang: string) => {
+    if (lang === "en") return "english";
+    if (lang === "ne") return "nepali";
+    return "english";
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+
     if (!newsLink) return;
 
     mutation.mutate({
       url: newsLink,
-      language,
+      language: mapLanguage(language),
+      num_sentences: 5,
     });
   };
 
   return (
     <main className="min-h-screen bg-[#547792] pt-20">
       <div className="max-w-3xl mx-auto px-6">
-        <h1 className="text-3xl font-bold mb-6 text-center text-white">
-          News Summarizer
-        </h1>
+        <h1 className="text-3xl font-bold mb-6 text-center">News Summarizer</h1>
 
         <form
           onSubmit={handleSubmit}
@@ -70,43 +78,34 @@ const Summarizer = () => {
         >
           <Input
             label="Paste News Article Link"
+            // type="url"
             placeholder="https://example.com/news-article"
             value={newsLink}
             onChange={(e) => setNewsLink(e.target.value)}
           />
-
-          <div className="flex items-center gap-4 mt-4">
-            <select
-              value={language}
-              onChange={(e) => setLanguage(e.target.value)}
-              className="px-4 py-2 rounded border text-gray-700"
-            >
-              <option value="english">English</option>
-              <option value="nepali">Nepali</option>
-              <option value="hindi">Hindi</option>
-            </select>
-
-            <Button type="submit" variant="primary" disabled={mutation.isPending}>
-              {mutation.isPending ? "Summarizing..." : "Summarize"}
-            </Button>
-          </div>
+          <Button type="submit" variant="primary">
+            Summarize
+          </Button>
         </form>
 
         <div className="bg-[#94B4C1] p-6 rounded-lg shadow-md">
           <h2 className="text-xl font-semibold mb-4">Summarized News</h2>
-
-          {mutation.isPending && (
-            <p className="text-gray-700">Generating summary...</p>
-          )}
-
+          <p className="text-gray-700 leading-relaxed">{summary?.summary}</p>
           {summary && (
-            <p className="text-gray-700 leading-relaxed">{summary.text}</p>
-          )}
+            <div className="mt-6 border-t pt-4">
+              <div className="flex items-center gap-4">
+                <select
+                  value={language}
+                  onChange={(e) => setLanguage(e.target.value)}
+                  className="px-4 py-2 rounded border text-gray-700"
+                >
+                  <option value="en">English</option>
+                  <option value="ne">Nepali</option>
+                </select>
 
-          {mutation.isError && (
-            <p className="text-red-600 mt-2">
-              Failed to summarize the article.
-            </p>
+                <Button variant="secondary">Translate</Button>
+              </div>
+            </div>
           )}
         </div>
       </div>
